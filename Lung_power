@@ -1,0 +1,99 @@
+rm(list=ls())
+library(energy)
+library(rrcov)
+library(PMVANOVA)
+
+ 
+Times =10;
+BstrpTimes = 10;
+pVal =matrix(0,Times,1);
+pValue =matrix(0,3,1);
+drpVal =matrix(0,Times,1);
+drpValue =matrix(0,3,1);
+ 
+
+ 
+load("michigandata.RData")
+n=nrow(t(michigandata))
+delta=floor(seq(30, n,  length=7))
+Xful=t(michigandata)
+Yful=c(rep(1,24),rep(2,62))
+
+ 
+
+###col name: methods, 0.01,0.05,0.1
+em.power=array(0,dim=c(2, 3, length(delta)))
+
+for (j in 1:length(delta)){
+
+delta.j=delta[j]
+cat("delta.j= ", delta.j,"\n")
+
+for (ii in 1:Times){
+ 
+ 
+subsamp=sample(1:n,delta.j) 
+X=as.matrix(Xful[subsamp,])
+Y=Yful[subsamp]
+ 
+
+cat("iter = ", ii,"\n")
+
+###PPMV: our proposed method 
+ppmv=test_ppmv(X,Y,B=BstrpTimes)
+      pVal[ii,1]=ppmv$pvalue
+      pValue[1,] = apply(pVal[1:ii,,drop=FALSE] <=  0.01,2,mean);
+      pValue[2,] = apply(pVal[1:ii,,drop=FALSE] <=  0.05,2,mean);
+      pValue[3,] = apply(pVal[1:ii,,drop=FALSE] <=  0.1,2,mean);
+      cat("ppmv.test = ", pValue,"\n")
+
+
+###DISCO:  Rizzo and   Szekely (2010).    
+dis=disco(X, factors=Y,R=BstrpTimes)
+      drpVal[ii,1] =as.numeric(dis$p.value);
+      drpValue[1,] = apply(drpVal[1:ii,,drop=FALSE] <=  0.01,2,mean);
+      drpValue[2,] = apply(drpVal[1:ii,,drop=FALSE] <=  0.05,2,mean);
+      drpValue[3,] = apply(drpVal[1:ii,,drop=FALSE] <=  0.1,2,mean);
+      cat("disco.test = ", drpValue,"\n")
+
+   
+}
+
+
+cat("########### ", "\n")
+##col name: methods, 0.01,0.05,0.1
+em.power[,,j]= rbind(t(pValue),t(drpValue))   
+
+}
+ 
+em.power
+
+
+ 
+
+par(mfrow = c(1, 2))  
+
+########## type I error at 0.05
+matplot(delta, t(em.power[,2,]),type="b",lty = 2:3, xlab=expression(n),ylab="empirical power",
+lwd=3, pch = 21:22, col = c(1,2) )
+
+abline(h = 0.05,  col = "lightgray") 
+axis(4,  at=0.05,  col.axis = "red", lwd =2)
+legend("topleft", c("PMV", "DISCO"), lty = 2:3,lwd=2,
+cex = 0.85, pch = 21:22,col = c(1,2) )
+
+########## type I error at 0.1
+
+matplot(delta, t(em.power[,3,]),type="b",lty = 2:3, xlab=expression(n),ylab="empirical power",
+lwd=3, pch = 21:22, col = c(1,2) )
+
+abline(h = 0.1,  col = "lightgray") 
+axis(4,  at=0.1,  col.axis = "red", lwd =2)
+legend("topleft", c("PMV", "DISCO"), lty = 2:3,lwd=2,
+cex = 0.85, pch = 21:22,col = c(1,2) )
+
+
+
+
+
+
